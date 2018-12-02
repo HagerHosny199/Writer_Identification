@@ -190,6 +190,49 @@ class IAM_loader(object):
 
         return doc1,doc2
 
+    def load_image(self,img):
+        try:
+            image_path = os.path.join(self.data_images_path,img+'.png')
+            assert os.path.exists(image_path),'{} is not a valid image path'.format(image_path)
+            image = cv2.imread(image_path,0) #reads the image in gray scale
+            _,image= cv2.threshold(image,0,255,cv2.THRESH_OTSU) #convert the image to binary
+        except:
+            print("Failed to read image at image_path: "+image_path)
+            return None
+        return image
+
+
+    def split_data_2(self):
+        authors_dict=self.read_forms_meta_data()
+        test_data = []
+        validation_data = []
+        training_data = []
+
+
+        cnt = 0
+        for author in sorted(authors_dict.items(),key=lambda a:len(a[1]),reverse=True):
+            if cnt == 3:
+                break
+            print(len(author[1]))
+            doc_num = min(len(author[1]),10)
+            docs = author[1]
+            if doc_num >= 3:
+                d0 = self.load_image(docs[0])
+                if d0 is not None:
+                    test_data.append([d0,author[0]])
+                d1 = self.load_image(docs[1])
+                if d1 is not None:
+                    validation_data.append([d1,author[0]])
+                for i in range(2,doc_num):
+                    d = self.load_image(docs[2])
+                    if d is not None:
+                        training_data.append([d,author[0]])
+
+            else:
+                pass #TODO : what if data is smaller?
+            cnt = cnt + 1
+        return training_data,test_data,validation_data
+
 
 
 
@@ -197,14 +240,14 @@ class IAM_loader(object):
 
 if __name__=="__main__":
 
-    IAM_loader=IAM_loader('../../version1/data')
+    IAM_loader=IAM_loader('../version1/data')
 
-    training_data,test_data,validation_data = IAM_loader.split_data()
+    training_data,test_data,validation_data = IAM_loader.split_data_2()
 
 
 
-    for i in range(100):
-        path_output = os.path.join(IAM_loader.output_path,str(i)+'.png')
+    for i in range(24):
+        path_output = os.path.join(IAM_loader.output_path,str(i+300)+'.png')
         cv2.imwrite(path_output,training_data[i][0])
 
 
