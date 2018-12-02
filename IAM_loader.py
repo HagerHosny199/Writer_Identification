@@ -31,7 +31,7 @@ class IAM_loader:
         training_data=[]
         test_data=[]
         validation_data=[]
-		
+
         for author,documents in authors_dict.items():
             if len(documents) == 1:
                 doc1,doc2 = self.split_document(documents[0])
@@ -44,27 +44,12 @@ class IAM_loader:
                 else:
                     print('Failed to split document %s.png into two regions'%documents[0])
             elif len(documents) >= 4:
-                d0,d1,d2,d3 = self.preprocess(documents[0]),self.preprocess(documents[1]),self.preprocess(documents[2]),self.preprocess(documents[3])
-                if d0 is not None:
-                    print("Adding document %s to the training data"%documents[0])
-                    training_data.append([d0,author])
-                else:
-                    print("Failed to add document %s.png to the training data"%documents[0])
-                if d1 is not None:
-                    print("Adding document %s to the test data"%documents[1])
-                    test_data.append([d1,author])
-                else:
-                    print("Failed to add document %s.png to the test data"%documents[1])
-                if d2 is not None:
-                    print("Adding document %s to the validation data"%documents[2])
-                    validation_data.append([d2,author])
-                else:
-                    print("Failed to add document %s.png to the validation data"%documents[2])
-                if d3 is not None:
-                    print("Adding document %s to the validation data"%documents[3])
-                    validation_data.append([d3,author])
-                else:
-                    print("Failed to add document %s.png to the validation data"%documents[3])
+                    for i in range(len(documents)):
+                        d0= self.preprocess(documents[i])
+                        if d0 is not None:
+                            print("Adding document %s to the training data"%documents[0])
+                            training_data.append([d0,author])
+
             else:
                 d0,d1 = self.preprocess(documents[0]),self.preprocess(documents[1])
                 if d0 is not None:
