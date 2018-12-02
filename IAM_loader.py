@@ -7,7 +7,7 @@ import numpy as np
 from skimage.io import imread
 
 
-class IAM_loader(object):
+class IAM_loader:
 
     def __init__(self,data_path,parse_method="form"):
         self.data_images_path=os.path.join(data_path,'original')
@@ -44,27 +44,12 @@ class IAM_loader(object):
                 else:
                     print('Failed to split document %s.png into two regions'%documents[0])
             elif len(documents) >= 4:
-                d0,d1,d2,d3 = self.preprocess(documents[0]),self.preprocess(documents[1]),self.preprocess(documents[2]),self.preprocess(documents[3])
-                if d0 is not None:
-                    print("Adding document %s to the training data"%documents[0])
-                    training_data.append([d0,author])
-                else:
-                    print("Failed to add document %s.png to the training data"%documents[0])
-                if d1 is not None:
-                    print("Adding document %s to the test data"%documents[1])
-                    test_data.append([d1,author])
-                else:
-                    print("Failed to add document %s.png to the test data"%documents[1])
-                if d2 is not None:
-                    print("Adding document %s to the validation data"%documents[2])
-                    validation_data.append([d2,author])
-                else:
-                    print("Failed to add document %s.png to the validation data"%documents[2])
-                if d3 is not None:
-                    print("Adding document %s to the validation data"%documents[3])
-                    validation_data.append([d3,author])
-                else:
-                    print("Failed to add document %s.png to the validation data"%documents[3])
+                    for i in range(len(documents)):
+                        d0= self.preprocess(documents[i])
+                        if d0 is not None:
+                            print("Adding document %s to the training data"%documents[0])
+                            training_data.append([d0,author])
+
             else:
                 d0,d1 = self.preprocess(documents[0]),self.preprocess(documents[1])
                 if d0 is not None:
@@ -113,12 +98,13 @@ class IAM_loader(object):
             assert os.path.exists(xml_path),'{} is not a valid xml file path '.format(xml_path)
             image = cv2.imread(image_path,0) #reads the image in gray scale
             _,image= cv2.threshold(image,0,255,cv2.THRESH_OTSU) #convert the image to binary
+           # _,image= cv2.threshold(image,0,255,cv2.THRESH_BINARY_INV) #convert the image to binary
             tree = ET.parse(xml_path)
             root = tree.getroot()
             for item in root.iter(self.parse_method):
                 bb = self.get_bounding_box(item)
                 cropped_img = self.crop(image,bb)
-
+			
         except:
             print("Failed to read image at image_path: "+image_path)
 
@@ -137,10 +123,10 @@ class IAM_loader(object):
 
 
     def crop(self,img,bb):
-        x1,y1,x2,y2 = bb
-
-
-        return img[y1:y2,x1:x2]
+	
+#x1,y1,x2,y2 = bb
+        return img#[y1:y2,x1:x2]
+		
 
 
     def process_data(self):
@@ -184,10 +170,10 @@ class IAM_loader(object):
         split_line = num_lines//2
         upper_part = lines[:split_line]
         lower_part = lines[split_line:]
-
+		
         doc1 = self.crop(image,self.get_split_bb(upper_part))
         doc2 = self.crop(image,self.get_split_bb(lower_part)) if (lower_part != None) else None
-
+		
         return doc1,doc2
 
     def load_image(self,img):
@@ -238,6 +224,7 @@ class IAM_loader(object):
 
 
 
+'''
 if __name__=="__main__":
 
     IAM_loader=IAM_loader('../version1/data')
@@ -250,5 +237,5 @@ if __name__=="__main__":
         path_output = os.path.join(IAM_loader.output_path,str(i+300)+'.png')
         cv2.imwrite(path_output,training_data[i][0])
 
-
+'''
 
