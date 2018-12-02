@@ -224,7 +224,7 @@ class IAM_loader:
 
 
 
-'''
+
 if __name__=="__main__":
 
     IAM_loader=IAM_loader('../version1/data')
@@ -237,5 +237,6 @@ if __name__=="__main__":
         path_output = os.path.join(IAM_loader.output_path,str(i+300)+'.png')
         cv2.imwrite(path_output,training_data[i][0])
 
-'''
+
+
 
