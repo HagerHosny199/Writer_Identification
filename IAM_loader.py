@@ -7,7 +7,7 @@ import numpy as np
 from skimage.io import imread
 
 
-class IAM_loader(object):
+class IAM_loader:
 
     def __init__(self,data_path,parse_method="form"):
         self.data_images_path=os.path.join(data_path,'original')
@@ -31,7 +31,7 @@ class IAM_loader(object):
         training_data=[]
         test_data=[]
         validation_data=[]
-
+		
         for author,documents in authors_dict.items():
             if len(documents) == 1:
                 doc1,doc2 = self.split_document(documents[0])
@@ -113,12 +113,13 @@ class IAM_loader(object):
             assert os.path.exists(xml_path),'{} is not a valid xml file path '.format(xml_path)
             image = cv2.imread(image_path,0) #reads the image in gray scale
             _,image= cv2.threshold(image,0,255,cv2.THRESH_OTSU) #convert the image to binary
+           # _,image= cv2.threshold(image,0,255,cv2.THRESH_BINARY_INV) #convert the image to binary
             tree = ET.parse(xml_path)
             root = tree.getroot()
             for item in root.iter(self.parse_method):
                 bb = self.get_bounding_box(item)
                 cropped_img = self.crop(image,bb)
-
+			
         except:
             print("Failed to read image at image_path: "+image_path)
 
@@ -137,10 +138,10 @@ class IAM_loader(object):
 
 
     def crop(self,img,bb):
-        x1,y1,x2,y2 = bb
-
-
-        return img[y1:y2,x1:x2]
+	
+#x1,y1,x2,y2 = bb
+        return img#[y1:y2,x1:x2]
+		
 
 
     def process_data(self):
@@ -184,10 +185,10 @@ class IAM_loader(object):
         split_line = num_lines//2
         upper_part = lines[:split_line]
         lower_part = lines[split_line:]
-
+		
         doc1 = self.crop(image,self.get_split_bb(upper_part))
         doc2 = self.crop(image,self.get_split_bb(lower_part)) if (lower_part != None) else None
-
+		
         return doc1,doc2
 
 
@@ -195,6 +196,7 @@ class IAM_loader(object):
 
 
 
+'''
 if __name__=="__main__":
 
     IAM_loader=IAM_loader('../../version1/data')
@@ -207,5 +209,5 @@ if __name__=="__main__":
         path_output = os.path.join(IAM_loader.output_path,str(i)+'.png')
         cv2.imwrite(path_output,training_data[i][0])
 
-
+'''
 
