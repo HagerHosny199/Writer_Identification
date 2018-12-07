@@ -34,18 +34,18 @@ for i in range(test_cnt):
         feature_vectors.append(feature_vector)
 
     #
-    # test_feature = ft.extract_features_from_lines(test,pm)
-    # success,test_class = cl.minimum_distance(test_feature,test_label,feature_vectors,training_labels,ft)
-    # successes =(successes + 1 )if success else successes
-    # print(successes)
-    lines_labels=[]
-    test_lines = pm.get_lines(test)
-    for line in test_lines:
-        line_feature = ft.extract_features_from_line(line)
-        _,test_class = cl.minimum_distance(line_feature,test_label,feature_vectors,training_labels,ft)
-        lines_labels.append(test_class)
-    max_label = find_max_label(lines_labels)
-    successes = (successes + 1) if max_label==test_label else successes
+    test_feature = ft.extract_features_from_lines(test,pm)
+    success,test_class = cl.minimum_distance(test_feature,test_label,feature_vectors,training_labels,ft)
+    successes =(successes + 1 )if success else successes
+    print(successes)
+    # lines_labels=[]
+    # test_lines = pm.get_lines(test)
+    # for line in test_lines:
+    #     line_feature = ft.extract_features_from_line(line)
+    #     _,test_class = cl.minimum_distance(line_feature,test_label,feature_vectors,training_labels,ft)
+    #     lines_labels.append(test_class)
+    # max_label = find_max_label(lines_labels)
+    # successes = (successes + 1) if max_label==test_label else successes
 
 
 
