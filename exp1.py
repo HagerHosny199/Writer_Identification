@@ -2,13 +2,14 @@ from IAM_loader import IAM_loader
 import preprocessing_module
 import feature_extraction
 import classifier
+from sklearn.preprocessing import normalize
 
 
 test_cnt = 10
 successes = 0
 
 
-loader = IAM_loader('../../version1/data')
+loader = IAM_loader('../version1/data')
 pm = preprocessing_module.preprocessing_module()
 ft = feature_extraction.feature_extractor()
 cl = classifier.classifier()
@@ -33,8 +34,13 @@ for i in range(test_cnt):
         feature_vector = ft.extract_features_from_lines(example,pm)
         feature_vectors.append(feature_vector)
 
-    #
+
     test_feature = ft.extract_features_from_lines(test,pm)
+    feature_vectors.append(test_feature)
+    feature_vectors=normalize(feature_vectors,axis=0)
+    test_feature = feature_vectors[-1]
+    feature_vectors = feature_vectors[:-1]
+
     success,test_class = cl.minimum_distance(test_feature,test_label,feature_vectors,training_labels,ft)
     successes =(successes + 1 )if success else successes
     print(successes)
@@ -46,6 +52,7 @@ for i in range(test_cnt):
     #     lines_labels.append(test_class)
     # max_label = find_max_label(lines_labels)
     # successes = (successes + 1) if max_label==test_label else successes
+
 
 
 

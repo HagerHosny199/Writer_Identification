@@ -3,8 +3,6 @@ import cv2
 import preprocessing_module
 import math
 from scipy import stats
-import statistics as stat
-
 class feature_extractor(object):
     # n is the length of fragment
     def edge_direction_distribution(self,n,xc,yc,edge_image):
@@ -28,11 +26,7 @@ class feature_extractor(object):
     def edge_based_feature(self,img):
         grad_x = cv2.Sobel(img,-1,1,0,ksize=3)
         grad_y = cv2.Sobel(img,-1,0,1,ksize=3)
-        edge_image = cv2.addWeighted(grad_x,1,grad_y,1,0)
-        # Fragments of length = 2
-        xc = [1,1,0,-1]
-        yc = [0,1,1,1]
-        f4 = self.edge_direction_distribution(2,xc,yc,edge_image)
+        edge_image = cv2.addWeighted(grad_x,0.5,grad_y,0.5,0)
         # Fragements of length = 3
         xc = [2,2,2,1,0,-1,-2,-2]
         yc = [0,-1,-2,-2,-2,-2,-2,-1]
@@ -49,21 +43,18 @@ class feature_extractor(object):
         return np.concatenate((f0,f1,f2))
 
 
-    def build_filters(self,start,end,step,size=20,sigma=4,gamma=1,psi=0,lamda=0.25):
+    def build_filters(self,start,end,step,size=32,sigma=4,gamma=1,psi=0,lamda=4):
         filters = []
         ksize = size
-
         for theta in np.arange(start, end, step):
-
-            thetarad = np.deg2rad(theta)
-            kern = cv2.getGaborKernel((ksize, ksize), sigma, thetarad, lamda, gamma, psi, ktype=cv2.CV_32F)
+            kern = cv2.getGaborKernel((ksize, ksize), sigma, theta, lamda, gamma, psi, ktype=cv2.CV_32F)
             #kern /= 1.5*kern.sum() #why this line??
             filters.append(kern)
         return filters
 
     def Gabor_filter_features(self,img):
 
-         filters = self.build_filters(0,181,10)
+         filters = self.build_filters(0,181,25)
          gabor_features=[]
 
          for kern in filters:
@@ -74,7 +65,7 @@ class feature_extractor(object):
             gabor_features.append(img_sum)
 
 
-         return gabor_features
+         return self.normalize(gabor_features)
 
 
     def find_contour_perimeter(self,im,x,y):
@@ -235,13 +226,10 @@ class feature_extractor(object):
             #print("Applying gabor filter")
             f3 = self.Gabor_filter_features(line)
 
-            #f4 = self.edge_based_feature(line)
+            f4 = self.edge_based_feature(line)
             # f6 = self.enclosed_regions_features(line)
-       #     f6 = self.connected_comp_feautres2(line)
-            f7 = self.white_space2(line)
 
-
-            line_feature = np.concatenate(([f0,f1,f2],f3,f7))
+            line_feature = np.concatenate(([f0,f1,f2],f3,f4))
             features.append(line_feature)
 
         mean_feature_vector = np.mean(features,axis=0)
@@ -263,7 +251,6 @@ class feature_extractor(object):
             f4 = self.edge_based_feature(line)
             # f6 = self.enclosed_regions_features(line)
 
-
             line_feature = np.concatenate(([f0,f1,f2],f3,f4))
             return line_feature
 
@@ -272,222 +259,6 @@ class feature_extractor(object):
 
 
 
-    def  white_space2(self,image):
-
-        # set the variable extension types
-
-        #whiteSpaceList = []
-        MaxwhiteSpaceList = []
-        feautres=[]
-
-        h = image.shape[0]
-        w = image.shape[1]
-        max_transitions=-1
-
-
-
-        for y in range(0,h):
-            #find line with max transitions
-            transitions=0
-            sumW=0
-            last_pixel_color=-1
-            whiteSpaceList=[]
-
-            for x in range(0, w):
-
-                if image[y,x]<127 and last_pixel_color==1:
-                    transitions+=1
-                    whiteSpaceList.append(sumW)
-                    last_pixel_color=0
-                    sumW=0
-
-
-                elif image[y,x]>127 and last_pixel_color==0:
-                    transitions+=1
-                    sumW+=1
-                    last_pixel_color=1
-
-                elif image[y,x]>127 and last_pixel_color==1:
-                    sumW+=1
-                    if x==w-1:
-                        whiteSpaceList.append(sumW)
-
-                elif image[y,x]>127 and last_pixel_color==-1:
-                    sumW+=1
-                    last_pixel_color=1
-
-                elif image[y,x]<127 and last_pixel_color==-1:
-                    last_pixel_color=0
-
-
-
-            if transitions>max_transitions:
-                max_transitions=transitions
-                MaxwhiteSpaceList=whiteSpaceList
-                row=y
-        #you now have max and its corresponding vector find median push it as a feautre
-
-        #MaxwhiteSpaceList.sort()
-        #print(MaxwhiteSpaceList)
-        feautres.append(stat.median(MaxwhiteSpaceList))
-
-
-        return feautres
-
-
-
-
-    def connected_comp_feautres2(self,image):
-
-
-        avg_dist_comp=[]
-        avg_w=[]
-        std_w=[]
-        median_w=[]
-        avg_inter_d=[]
-        avg_word_d=[]
-        formFactor=[]
-        roundness=[]
-        blobSize=[]
-        avg_dist=[]
-
-
-
-        blackimg = (image <= 127).astype(np.uint8)
-
-        #whiteimg = (image >= 127).astype(np.uint8)
-
-        imgWidth = image.shape[1]
-        threshold= 0.01*imgWidth
-
-        avg=0
-        width=[]
-
-        output = cv2.connectedComponentsWithStats(blackimg, 8, cv2.CV_32S)
-        output_loops = cv2.connectedComponentsWithStats(image, 8, cv2.CV_32S)
-
-
-        components=output[2]
-        components_loops=output_loops[2]
-
-        components=sorted(components, key = lambda x: x[0])  #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT2KDY DRORY
-        components_loops=sorted(components_loops, key = lambda x: x[0])  #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT2KDY DRORY
-
-        newco=[]   ###############################################################################NEW
-        for co in components:
-            if not( co[2]==imgWidth  and co[0]==0):
-                newco.append(co)
-        components=newco
-
-        newco=[]
-        for co in components_loops:
-            if  not(co[2]>=0.95*imgWidth  and co[0]==0):
-                newco.append(co)
-        components_loops=newco
-
-
-        width.append(components[0][2])
-
-        noWords=0
-        nointerWords=0
-        inter_word_distance=0
-        distance_bet_words=0
-
-        for j in range(1,len(components)):
-                avg+=(components[j][0]-(components[j-1][0]+components[j-1][2]))
-                width.append(components[j][2])
-
-                if (components[j][0]-(components[j-1][0]+components[j-1][2]))< threshold:
-                    inter_word_distance+=(components[j][0]-(components[j-1][0]+components[j-1][2]))
-                    nointerWords+=1
-                else:
-                    distance_bet_words += (components[j][0]-(components[j-1][0]+components[j-1][2]))
-                    noWords+=1
-
-        inter_word_distance=inter_word_distance/nointerWords if nointerWords!=0 else inter_word_distance
-        distance_bet_words=distance_bet_words/noWords if noWords!=0 else distance_bet_words
-
-        avg_inter_d.append(inter_word_distance)
-        avg_word_d.append(distance_bet_words)
-
-        if(len(components)):
-            avg/=len(components)
-
-        avg_w_c=stat.mean(width)
-
-        # std_w_c=stat.stdev(width)
-        std_w_c = np.std(width)
-
-        median_w_c=stat.median(width)
-
-        avg_w.append(avg_w_c)
-        std_w.append(std_w_c)
-        median_w.append(median_w_c)
-        avg_dist.append(avg)
-
-
-        avgformfac=0
-        avgroundess=0
-        avgblobsize=0
-        h = image.shape[0]
-        w = image.shape[1]
-
-        for loopComp in components_loops:
-
-                bound=0
-                avgformfac=0
-                avgroundess=0
-                avgblobsize=0
-
-                for i in range (loopComp[1],loopComp[1]+loopComp[3]):
-                    for j in range (loopComp[0],loopComp[0]+loopComp[2]):
-
-                        if (( (i+1<h and image[i+1][j]<127) or (i-1>=0 and image[i-1][j]<127) or (j+1<w and image[i][j+1]<127) or (j-1>=0 and image[i][j-1]<127) or
-                           (i+1<h and j+1<w and image[i+1][j+1]<127) or (i+1<h and j-1>=0 and image[i+1][j-1]<127) or (i-1>=0 and j+1<w and image[i-1][j+1]<127) or
-						   (i-1>=0 and j-1>=0 and image[i-1][j-1]<127)) and image[i][j]>127):
-                                bound+=1
-
-                if(bound==0):bound=loopComp[3]+loopComp[2]
-
-
-                avgformfac+=((4*math.pi*loopComp[4])/(bound*bound))
-                avgroundess+=((bound*bound)/loopComp[4])
-                avgblobsize+=loopComp[4]
-
-        formFactor.append(avgformfac/len(components_loops))
-        roundness.append(avgroundess/len(components_loops))
-        blobSize.append(avgblobsize/len(components_loops))
-
-
-        return [avg_dist[0],avg_w[0],std_w[0],median_w[0],formFactor[0],roundness[0],blobSize[0]]
-
-
-    def extract_lines_features(self,img,pm):
-        '''
-        Calculates the mean feature vectors for an image
-        :param img: cropped image
-        :param pm: preprocessing module
-        :return: mean feature vector of lines
-        '''
-        print("extracting features from lines")
-        features = []
-        lines = pm.get_lines(img)
-        for line in lines:
-            # print("Extracting fractal features")
-            f0,f1,f2 = self.fractal_features(line)
-            #print("Applying gabor filter")
-            f3 = self.Gabor_filter_features(line)
-
-            #f4 = self.edge_based_feature(line)
-            # f6 = self.enclosed_regions_features(line)
-            #f6 = self.connected_comp_feautres2(line)
-            f7 = self.white_space2(line)
-
-
-            line_feature = np.concatenate(([f0,f1,f2],f3,f7))
-            features.append(line_feature) #line features
-
-        return features
 
 
 
@@ -516,11 +287,11 @@ if __name__=="__main__":
     # for filter in filters:
     #     print(filter)
 
-    # im = cv2.imread('./a01-000u-00.png',0)
-    # _,im =cv2.threshold(im,0,255,cv2.THRESH_OTSU)
-    # f1= ft.Gabor_filter_features(im)
-    #
-    # print(f1)
+    im = cv2.imread('./a01-000u-00.png',0)
+    _,im =cv2.threshold(im,0,255,cv2.THRESH_OTSU)
+    f1= ft.Gabor_filter_features(im)
+
+    print(f1)
 
     # #print(ft.enclosed_regions_features(im))
     #
@@ -528,8 +299,6 @@ if __name__=="__main__":
     # cnt = ft.find_contour_perimeter(im,3,2)
     # print(cnt)
 
-
-    im = cv2.imread('./testimg.png',0)
 
 
 
