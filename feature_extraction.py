@@ -492,6 +492,156 @@ class feature_extractor(object):
             features.append(f8) #line features
 
         return features
+    
+    def lower_upper_contour(image):
+        x_pre=0 #holds the previous x
+        index=0 #holds the index of the next contour
+        x=0 #holds the actual x in the upper_img
+        y=0 #holds the actual y in the upper_img
+        x_=0 #holds x mio for the lower image
+        y_=0 #holds y mio for the lower image
+        x_u=0 #holds x mio for the upper image
+        y_u=0 #holds y mio for the upper image
+        x_values_lower=[] #holds the value of x's to get the line
+        x_values_upper=[] #holds the value of x's to get the line
+        x_reg_lower=[] #holds the value of x's to get the regression line
+        x_reg_upper=[] #holds the value of x's to get the regression line
+        start_lower=0 #the start y 
+        start_upper=0 #the start y 
+        minima_lower=[]
+        minima_upper=[]
+        maxima_upper=[]
+        maxima_lower=[]
+        local_min_lower=0
+        local_min_upper=0
+        local_max_upper=0
+        local_max_lower=0
+        y_lower=[] #holds the y points 
+        y_upper=[]
+        
+        #create new image
+        lower_img=np.zeros(shape=(500,image.shape[1]))
+        upper_img=np.zeros(shape=(500,image.shape[1]))
+        #convert to gray scale
+        img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        #getting the binary image
+        ret,thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+        #getting the contours
+        im2,contours,hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        
+        #concatenate the contours to sort them
+        for i in range(len(contours)):
+            contours[i]=np.concatenate(contours[i])
+        contours=np.concatenate(contours)
+        
+        #sort the contours
+        contours=sorted(contours,key=itemgetter(1)) #sort on the row
+        contours=sorted(contours,key=itemgetter(0)) #sort on the col
+        
+        #loop through the contours to get the lower contour
+        for i in range(len(contours)):
+            #if we have a gap then detect it 
+            if contours[i][0]>index:
+                index=contours[i][0]
+            #here we find our index so pick the pixel
+            if contours[i][0]==index:
+                #the first time we get a pixel
+                if x==0 and y ==0 :
+                    #by trial i found that the max length for a line 500 pixel so i chose to start from 400 to avoid out of range error
+                    lower_img[400][contours[i][0]]=255
+                    x=400
+                    y=contours[i][0]
+                    x_pre=x
+                    x_+=x
+                    y_+=y
+                    start_lower=y
+                else:
+                    #if the new pixel is higher so i need to go down
+                    if contours[i][1] >x_pre:
+                        x+=1
+                    #if the new pixel is lower so i need to go up
+                    elif contours[i][1] <x_pre:
+                        x-=1
+                    #updating the pixel value with gap elemination 
+                    lower_img[x][y]=255
+                    x_pre=contours[i][1]
+                    x_+=x
+                    y_+=y
+                    y+=1
+                x_values_lower.append(x)
+                index+=1
+
+        #loop to get the upper contour
+        x_pre=0 
+        index=0
+        x=0 
+        y=0
+        for i in range(len(contours)):
+            #here we find our index so pick the pixel
+            if contours[i][0]>index:
+                #the first time we get a pixel
+                if x==0 and y ==0 :
+                    #by trial i found that the max length for a line 500 pixel so i chose to start from 400 to avoid out of range error
+                    x=400
+                    y=contours[i][0]
+                    x_pre=x
+                    start_upper=y
+                else:
+                    #if the new pixel is higher so i need to go down
+                    if contours[i-1][1] >x_pre:
+                        x+=1
+                    #if the new pixel is lower so i need to go up
+                    elif contours[i-1][1] <x_pre:
+                        x-=1
+                    #updating the pixel value with gap elemination in x & y directions
+                    upper_img[x][y]=255
+                    x_pre=contours[i-1][1]
+                    x_u+=x
+                    y_u+=y
+                    y+=1
+                x_values_upper.append(x)
+                index=contours[i][0]
+        
+        #calculate the y points
+        for i in range(len(x_values_lower)):
+            y_lower.append(start_lower+(i))
+            y_upper.append(start_upper+(i))
+
+        #calculate the slope and the intercept of the regression line
+        slope_lower, intercept_lower, _, _,_ = stats.linregress(y_lower,x_values_lower)
+        slope_upper, intercept_upper, _,_,_= stats.linregress(y_upper,x_values_upper)
+        #getting the line y=mx+b
+        for i in range(len(x_values_lower)):
+            x_reg_lower.append(slope_lower*(y_lower[i])+intercept_lower)
+            x_reg_upper.append(slope_upper*(y_upper[i])+intercept_upper)
+        #getting the MSE feature between the original curve and the regression line
+        mse_lower=mean_squared_error(x_values_lower,x_reg_lower)
+        mse_upper=mean_squared_error(x_values_upper,x_reg_upper)
+
+        #getting the locl maxima and minima for the lower image
+        maxima_lower, _ = find_peaks(x_values_lower,distance=10)
+        x_values=np.array(x_values_lower)
+        minima_lower=argrelextrema(x_values, np.less)
+
+        #getting the locl maxima and minima for the upper image
+        minima_upper, _ = find_peaks(x_values_upper,distance=10)
+        x_values=np.array(x_values_upper)
+        maxima_upper=argrelextrema(x_values, np.less)
+
+        #calculate the local freq
+        local_min_upper=len(minima_upper)/len(x_values_upper)
+        local_min_lower=len(minima_lower)/len(x_values_lower)
+        local_max_upper=len(maxima_upper)/len(x_values_upper)
+        local_max_lower=len(maxima_lower)/len(x_values_lower)
+        print(local_min_upper,local_min_lower,local_max_upper,local_max_lower)
+        """
+        plt.plot( y_lower,x_reg_lower, color='red', linewidth=3)
+        plt.plot(y_lower,x_values_lower, color='blue', linewidth=3)
+        plt.plot( y_upper,x_reg_upper, color='black', linewidth=3)
+        plt.plot(y_upper,x_values_upper, color='green', linewidth=3)
+        """
+        #cv2.imwrite("../dataset/lower.png",lower_img)
+    return slope_upper,slope_lower,mse_upper,mse_lower,local_min_upper,local_min_lower,local_max_upper,local_max_lower
 
 
 
