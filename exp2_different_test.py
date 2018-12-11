@@ -6,7 +6,7 @@ from sklearn.preprocessing import normalize
 from sklearn.neighbors import KNeighborsClassifier
 
 
-test_cnt = 10
+test_cnt = 52
 successes = 0
 
 
@@ -64,7 +64,7 @@ for i in range(test_cnt):
     # print(successes)
 
     # test_lines = pm.get_lines(test)
-    neigh = KNeighborsClassifier(n_neighbors=3,weights='distance')
+    neigh = KNeighborsClassifier(n_neighbors=3)
     neigh.fit(feature_vectors,labels)
     lines_labels = neigh.predict([test_feature])
     # max_label = find_max_label(lines_labels)
@@ -79,3 +79,8 @@ for i in range(test_cnt):
 
 accuracy = (successes/test_cnt)*100
 print(accuracy)
+
+
+
+#Accuracy 80% for Gabor and fractal together + knearest neighbour with k=1 and k=3
+#Accuracy 30% for fractal + kneighbour k=1

@@ -4,6 +4,7 @@ import preprocessing_module
 import math
 from scipy import stats
 import statistics as stat
+from contour_features import contour_feautres
 
 class feature_extractor(object):
     # n is the length of fragment
@@ -231,18 +232,20 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            f0,f1,f2 = self.fractal_features(line)
+            #f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
-            f3 = self.Gabor_filter_features(line)
+            #f3 = self.Gabor_filter_features(line)
 
             #f4 = self.edge_based_feature(line)
             # f6 = self.enclosed_regions_features(line)
        #     f6 = self.connected_comp_feautres2(line)
-            f7 = self.white_space2(line)
+            #f7 = self.white_space2(line)
+            cf = contour_feautres()
+            f8 = cf.contour_feautre_extract(line)
 
 
-            line_feature = np.concatenate(([f0,f1,f2],f3,f7))
-            features.append(line_feature)
+           # line_feature = np.concatenate(([f0,f1,f2]))
+            features.append(f8)
 
         mean_feature_vector = np.mean(features,axis=0)
         # std_dev = np.std(features,axis=0)
@@ -474,18 +477,19 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            f0,f1,f2 = self.fractal_features(line)
+            #f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
-            f3 = self.Gabor_filter_features(line)
+            #f3 = self.Gabor_filter_features(line)
 
             #f4 = self.edge_based_feature(line)
             # f6 = self.enclosed_regions_features(line)
             #f6 = self.connected_comp_feautres2(line)
-            f7 = self.white_space2(line)
+            #f7 = self.white_space2(line)
 
-
-            line_feature = np.concatenate(([f0,f1,f2],f3,f7))
-            features.append(line_feature) #line features
+            cf = contour_feautres()
+            f8 = cf.contour_feautre_extract(line)
+           # line_feature = np.concatenate(([f0,f1,f2]))
+            features.append(f8) #line features
 
         return features
 
@@ -530,7 +534,6 @@ if __name__=="__main__":
 
 
     im = cv2.imread('./testimg.png',0)
-
 
 
 
