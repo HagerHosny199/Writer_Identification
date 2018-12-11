@@ -637,7 +637,7 @@ class feature_extractor(object):
         plt.plot(y_upper,x_values_upper, color='green', linewidth=3)
         """
         #cv2.imwrite("../dataset/lower.png",lower_img)
-    return lower_img , upper_img,slope_upper,slope_lower,mse_upper,mse_lower
+    return slope_upper,slope_lower,mse_upper,mse_lower,local_min_upper,local_min_lower,local_max_upper,local_max_lower
 
 
 
