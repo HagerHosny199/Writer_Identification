@@ -6,7 +6,7 @@ from sklearn.preprocessing import normalize
 from sklearn.neighbors import KNeighborsClassifier
 
 
-test_cnt = 52
+test_cnt = 12
 successes = 0
 
 

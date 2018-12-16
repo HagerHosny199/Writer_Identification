@@ -1,5 +1,10 @@
+from operator import itemgetter
+
 import numpy as np
 import cv2
+from scipy.signal import find_peaks, argrelextrema
+from sklearn.metrics import mean_squared_error
+
 import preprocessing_module
 import math
 from scipy import stats
@@ -47,7 +52,7 @@ class feature_extractor(object):
         yc = [0,-1,-2,-3,-4,-4,-4,-4,-4,-4,-4,-4,-4,-3,-2,-1]
         f2 = self.edge_direction_distribution(5,xc,yc,edge_image)
 
-        return np.concatenate((f0,f1,f2))
+        return np.concatenate((f0,f1,f2,f4))
 
 
     def build_filters(self,start,end,step,size=20,sigma=4,gamma=1,psi=0,lamda=0.25):
@@ -232,7 +237,7 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            #f0,f1,f2 = self.fractal_features(line)
+            f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
@@ -240,12 +245,13 @@ class feature_extractor(object):
             # f6 = self.enclosed_regions_features(line)
        #     f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
-            cf = contour_feautres()
-            f8 = cf.contour_feautre_extract(line)
+            # cf = contour_feautres()
+            # f8 = cf.contour_feautre_extract(line)
+            # f9 = self.lower_upper_contour(line)
 
 
-           # line_feature = np.concatenate(([f0,f1,f2]))
-            features.append(f8)
+            #line_feature = np.concatenate(([f0,f1,f2],f8,f9))
+            features.append([f0,f1,f2])
 
         mean_feature_vector = np.mean(features,axis=0)
         # std_dev = np.std(features,axis=0)
@@ -477,7 +483,7 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            #f0,f1,f2 = self.fractal_features(line)
+            f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
@@ -485,15 +491,16 @@ class feature_extractor(object):
             # f6 = self.enclosed_regions_features(line)
             #f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
-
-            cf = contour_feautres()
-            f8 = cf.contour_feautre_extract(line)
-           # line_feature = np.concatenate(([f0,f1,f2]))
-            features.append(f8) #line features
+            #
+            #cf = contour_feautres()
+            #f8 = cf.contour_feautre_extract(line)
+            #f9 = self.lower_upper_contour(line)
+            #line_feature = np.concatenate(([f0,f1,f2],f8,f9))
+            features.append([f0,f1,f2]) #line features
 
         return features
     
-    def lower_upper_contour(image):
+    def lower_upper_contour(self,image):
         x_pre=0 #holds the previous x
         index=0 #holds the index of the next contour
         x=0 #holds the actual x in the upper_img
@@ -520,12 +527,13 @@ class feature_extractor(object):
         y_upper=[]
         
         #create new image
-        lower_img=np.zeros(shape=(500,image.shape[1]))
-        upper_img=np.zeros(shape=(500,image.shape[1]))
+        lower_img=np.zeros(shape=(1000,image.shape[1]))
+        upper_img=np.zeros(shape=(1000,image.shape[1]))
         #convert to gray scale
-        img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        #img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         #getting the binary image
-        ret,thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+        #ret,thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+        thresh = cv2.bitwise_not(image)
         #getting the contours
         im2,contours,hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         
@@ -537,7 +545,7 @@ class feature_extractor(object):
         #sort the contours
         contours=sorted(contours,key=itemgetter(1)) #sort on the row
         contours=sorted(contours,key=itemgetter(0)) #sort on the col
-        
+        index = -1 #I think initialization is needed here [Reem]
         #loop through the contours to get the lower contour
         for i in range(len(contours)):
             #if we have a gap then detect it 
@@ -641,7 +649,7 @@ class feature_extractor(object):
         plt.plot(y_upper,x_values_upper, color='green', linewidth=3)
         """
         #cv2.imwrite("../dataset/lower.png",lower_img)
-    return slope_upper,slope_lower,mse_upper,mse_lower,local_min_upper,local_min_lower,local_max_upper,local_max_lower
+        return [slope_upper,slope_lower,mse_upper,mse_lower,local_min_upper,local_min_lower,local_max_upper,local_max_lower]
 
 
 

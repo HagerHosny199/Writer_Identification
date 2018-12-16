@@ -24,3 +24,22 @@ class classifier(object):
     else:
         print("Failure: expected = {} actual = {} ".format(test_label,test_class))
     return success,test_class
+
+ def minimum_distance_2(self,test_feature,feature_vectors,training_labels):
+
+
+    #get features of test vector
+    v= test_feature
+
+    min_dist = 1000
+    min_i=1
+    for i,j in enumerate(feature_vectors):
+        dist = distance.euclidean(j,v)
+        print(dist)
+        if dist<min_dist:
+            min_dist = dist
+            min_i = i
+
+    test_class = training_labels[min_i]
+
+    return test_class

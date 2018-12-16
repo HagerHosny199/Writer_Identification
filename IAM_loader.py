@@ -6,6 +6,8 @@ import glob
 import numpy as np
 from skimage.io import imread
 from matplotlib import pyplot as plt
+from os import listdir
+
 
 
 
@@ -141,7 +143,7 @@ class IAM_loader(object):
             return None
         return image
 
-    def load_image_at_path(self,image_path):
+    def load_image_at_path(self,image_path,THRESHOLD=True):
         '''
 
         :param image_path: the path of an image
@@ -151,7 +153,8 @@ class IAM_loader(object):
 
             assert os.path.exists(image_path),'{} is not a valid image path'.format(image_path)
             image = cv2.imread(image_path,0) #reads the image in gray scale
-            _,image= cv2.threshold(image,0,255,cv2.THRESH_OTSU) #convert the image to binary
+            if THRESHOLD:
+                _,image= cv2.threshold(image,0,255,cv2.THRESH_OTSU) #convert the image to binary
 
         except:
             print("Failed to read image at image_path: "+image_path)
@@ -316,6 +319,48 @@ class IAM_loader(object):
             training.append(train_image)
             training_labels.append(label)
         return test_image,test_label,training,training_labels
+
+
+
+
+    def read_test_case_directory(self,path,threshold=True):
+        print("loading test case in directory at path: {}".format(path))
+        test_file = os.path.join(path,'test.PNG')
+        test_image = self.load_image_at_path(test_file,threshold)
+        training = []
+        training_labels = []
+        for i in range(1,4):
+            train_path = os.path.join(path,str(i))
+            print("loading image at path: {}".format(train_path))
+            training_files = glob.glob(os.path.join(train_path,'*.PNG'))
+            print("Training files : {}".format(training_files))
+            for train_file in training_files:
+                train_image = self.load_image_at_path(train_file,threshold)
+                label = i
+                training.append(train_image)
+                training_labels.append(label)
+
+        return test_image,training,training_labels
+
+
+
+    def read_dirs(self,path):
+        temp_dirs=os.listdir(path)
+        filtered_dirs = [temp_dir for temp_dir in temp_dirs if temp_dir.isnumeric()]
+        sorted_dirs = sorted(filtered_dirs,key= lambda dir_name:int(dir_name))
+        dirs = (os.path.join(path,dirname) for dirname in sorted_dirs)
+
+        return dirs
+
+
+
+
+
+
+
+
+
+
 
 
 

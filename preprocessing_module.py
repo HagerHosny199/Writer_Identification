@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 from matplotlib import pyplot as plt
+from sklearn.cluster import MeanShift
 
 class preprocessing_module(object):
 
@@ -45,6 +46,36 @@ class preprocessing_module(object):
     img=cv2.resize(img, dsize=(self.HEIGHT, self.WIDTH), interpolation=cv2.INTER_CUBIC)
     return img
 
+  # def detect_lines(self,img):
+  #   horizontal_lines=[]
+  #   ret_lines=[]
+  #   #apply canny
+  #   edges = cv2.Canny(img,50,150,apertureSize = 3)
+  #   #dilation
+  #   kernel = np.ones((5,5), np.uint8)
+  #   img_dilation = cv2.dilate(edges, kernel, iterations=1)
+  #   #hough line transform
+  #   lines = cv2.HoughLinesP(img_dilation, 1, np.pi/180,200, maxLineGap=1,minLineLength=img.shape[1]/2)
+  #   #getting the horizontal lines
+  #   for i in range(len(lines)):
+  #          for line in lines[i]:
+  #               pt1 = (line[0],line[1])
+  #               pt2 = (line[2],line[3])
+  #               if (line[1]-line[3])==0 : #print((line[2]-line[3])//(line[0]-line[1]))
+  #                       cv2.line(img, pt1, pt2, (255,255,255), 3)
+  #                       horizontal_lines.append(line)
+  #   #sort lines to eleminate the closed lines
+  #   horizontal_lines=sorted(horizontal_lines,key=lambda x: x[1])
+  #   pt=horizontal_lines[0]
+  #   ret_lines.append(pt)
+  #   #loop to retrive the included lines
+  #   for i in range(1,len(horizontal_lines)):
+  #       if abs(horizontal_lines[i][1]-pt[1])>100:
+  #           #print("included",horizontal_lines[i])
+  #           pt=horizontal_lines[i]
+  #           ret_lines.append(pt)
+  #   return ret_lines
+
   def detect_lines(self,img):
     horizontal_lines=[]
     ret_lines=[]
@@ -76,8 +107,6 @@ class preprocessing_module(object):
     return ret_lines
 
 
-
-
   def get_lines(self,img):
 
       im = cv2.erode(img,np.ones((3,200), np.uint8))
@@ -98,9 +127,36 @@ class preprocessing_module(object):
             lines.append(img[miny:maxy,minx:maxx])
       return lines
 
+  def get_lines2(self,img,hist):
+        prev_y=0
+        num=0
+        lines=[]
+        line_num=0
+        for i in range(len(hist)):
+            if ((i-prev_y)>0 and (num/(i-prev_y))>0.25 and hist[i]==0 and hist[i-1]!=hist[i] and i-prev_y>100) or ((i-prev_y)>0 and (num/(i-prev_y))>0.25 and hist[i]<20 and hist[i-1]<20 and hist[i-1]!=hist[i] and i-prev_y>100) :
+                temp=img[prev_y:i+5,0:img.shape[1]]
+                prev_y=i+5
+                num=0
+
+                line_num+=1
+                lines.append(temp)
+            elif hist[i]>30:
+                num+=1
+
+        return lines
 
 
-
+  def get_histogram(self,img):
+    histogram=[]
+    #loop through the image to calcultae the  horizontal histogram of the image
+    for i in range(img.shape[0]): #for each row
+        sum=0
+        for j in range(img.shape[1]): # for each col
+            if img[i][j]==0:
+                sum+=1
+        histogram.append(sum)
+    print(len(histogram),img.shape)
+    return histogram
 
 
   def get_region2(self,training_data):
@@ -112,6 +168,28 @@ class preprocessing_module(object):
         cropped_img=self.crop_image(img,lines[1][1]+10,lines[2][1]-3,math.floor(lines[1][0]/4),img.shape[1]-1)
         cropped_img=self.resize_image(cropped_img)
         training_data[i][0]=cropped_img
+
+
+  def get_lines3(self,img,threshold=50,winsize=100):
+      hist = np.sum(img==0,axis=1)
+      print(len(hist))
+      candidateWhiteSpace =np.array( [i for i,value in enumerate(hist) if value<threshold]).reshape(-1,1)
+      print(len(candidateWhiteSpace))
+      Clustering = MeanShift(bandwidth=winsize).fit(candidateWhiteSpace)
+      G=Clustering.cluster_centers_
+      ycrop = sorted([int(y[0]) for y in G])
+      print(ycrop)
+
+
+      lines = []
+      for i in range(1,len(ycrop)):
+          line = img[ycrop[i-1]:ycrop[i],0:]
+
+          if np.sum(sum(line==0))>100:
+            lines.append(line)
+      return lines
+
+
 
   def get_region(self,training_ex):
 
@@ -129,18 +207,30 @@ class preprocessing_module(object):
 
 if __name__=='__main__':
     pm = preprocessing_module()
-    image = cv2.imread("../../version1/data/original/a01-058.png",0)
+    #image = cv2.imread("../version1/data/original/a01-058.png",0)
+    #image = cv2.imread("../version1/data/original/a01-003.png",0)
+    #image = cv2.imread("../version1/data/original/a01-000u.png",0)
+    #image = cv2.imread("../version1/data/original/a01-003x.png",0)
+    image = cv2.imread("../version1/data/original/a03-054.png",0)
     # img = pm.line_segmentation(image)
     # cv2.imshow('ll',img[2])
     # cv2.waitKey(0)
-    img = pm.get_region(image)
-    img2 = pm.otsu_threshold(img)
-    lines = pm.get_lines(img2)
-    for i in range(1,len(lines)+1):
-        plt.subplot(len(lines),1,i)
-        plt.imshow(lines[i-1],cmap='gray')
+    img = pm.otsu_threshold(image)
+    img = pm.get_region(img)
 
-    plt.show()
+   # hist=pm.get_histogram(img)
+
+    lines = pm.get_lines3(img)
+    for line in lines:
+        cv2.imshow("l",line)
+        cv2.waitKey(0)
+   # lines=pm.get_lines2(img,hist)
+
+    # for i in range(1,len(lines)+1):
+    #     cv2.imshow("ll",lines[i-1])
+    #     cv2.waitKey(0)
+
+
 
 
 

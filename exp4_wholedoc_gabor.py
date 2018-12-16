@@ -22,6 +22,10 @@ def find_max_label(lines_labels):
     return sorted(dict.items(),key=lambda a : a[1],reverse=True)[0]
 
 
+
+
+
+
 for i in range(test_cnt):
     print("testcase {}: ".format(i))
     dir_name = 'dir{}'.format(i)
