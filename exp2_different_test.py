@@ -6,7 +6,7 @@ from sklearn.preprocessing import normalize
 from sklearn.neighbors import KNeighborsClassifier
 
 
-test_cnt = 12
+test_cnt = 15
 successes = 0
 
 
@@ -31,7 +31,7 @@ for i in range(test_cnt):
     test,test_label,training_data,training_labels = loader.read_test_case(dir_name)
     print(test_label)
     print(training_labels)
-    cropped_training_data = [pm.get_region(training_data[i]) for i in range(len(training_data))]
+    cropped_training_data = [pm.otsu_threshold(pm.get_region(training_data[i]) for i in range(len(training_data)))]
     feature_vectors = []
     labels = []
     j=0

@@ -3,6 +3,8 @@ import numpy as np
 import math
 from matplotlib import pyplot as plt
 from sklearn.cluster import MeanShift
+from sklearn.cluster import KMeans
+
 
 class preprocessing_module(object):
 
@@ -79,13 +81,22 @@ class preprocessing_module(object):
   def detect_lines(self,img):
     horizontal_lines=[]
     ret_lines=[]
+    cv2.imshow("img",cv2.resize(img,(700,500)))
+    cv2.waitKey(0)
     #apply canny
-    edges = cv2.Canny(img,50,150,apertureSize = 3)
+    # edges = cv2.Canny(img,50,150,apertureSize = 3)
+    edges = cv2.Sobel(img,-1,0,1,ksize=3)
+    # cv2.imshow("edges",cv2.resize(edges,(500,500)))
+    # cv2.waitKey(0)
     #dilation
     kernel = np.ones((5,5), np.uint8)
-    img_dilation = cv2.dilate(edges, kernel, iterations=1)
+    img_dilation = cv2.dilate(edges, kernel, iterations=2)
+    # cv2.imshow("dilation",cv2.resize(img_dilation,(500,500)))
+    # cv2.waitKey(0)
     #hough line transform
-    lines = cv2.HoughLinesP(img_dilation, 1, np.pi/180,200, maxLineGap=1,minLineLength=img.shape[1]/2)
+
+    lines = cv2.HoughLinesP(img_dilation, 1, np.pi/180,200, maxLineGap=10,minLineLength=img.shape[1]/2)
+    # print(lines)
     #getting the horizontal lines
     for i in range(len(lines)):
            for line in lines[i]:
@@ -93,6 +104,8 @@ class preprocessing_module(object):
                 pt2 = (line[2],line[3])
                 if (line[1]-line[3])==0 : #print((line[2]-line[3])//(line[0]-line[1]))
                         cv2.line(img, pt1, pt2, (255,255,255), 3)
+                        # cv2.imshow("img2",cv2.resize(img,(500,500)))
+                        # cv2.waitKey(0)
                         horizontal_lines.append(line)
     #sort lines to eleminate the closed lines
     horizontal_lines=sorted(horizontal_lines,key=lambda x: x[1])
@@ -163,6 +176,8 @@ class preprocessing_module(object):
     for i in range(len(training_data)):
         img=training_data[i][0]
         lines=self.detect_lines(img)
+        # print(lines)
+        # print(img.shape)
         # print(len(lines))
         # print(img.shape,lines[1][1]+10,lines[2][1]-3,math.floor(lines[1][0]/4),img.shape[1]-1)
         cropped_img=self.crop_image(img,lines[1][1]+10,lines[2][1]-3,math.floor(lines[1][0]/4),img.shape[1]-1)
@@ -195,15 +210,87 @@ class preprocessing_module(object):
 
         img=training_ex
         lines=self.detect_lines(img)
+        print(lines)
+        print(img.shape)
         # print(len(lines))
         # print(img.shape,lines[1][1]+10,lines[2][1]-3,math.floor(lines[1][0]/4),img.shape[1]-1)
         cropped_img=self.crop_image(img,lines[1][1]+10,lines[2][1]-3,math.floor(lines[1][0]/4),img.shape[1]-1)
-        cropped_img=self.resize_image(cropped_img)
+        cv2.imshow("mu",cv2.resize(cropped_img,(500,500)))
+        cv2.waitKey(0)
+        #cropped_img=self.resize_image(cropped_img)
         return cropped_img
+
+
+  def get_cropped_image(self,image):
+        edges = cv2.Sobel(image,-1,0,1,ksize=3)
+        #_,edges = cv2.threshold(image,0,255 ,cv2.THRESH_OTSU)
+        #edges = cv2.Canny(image,5,50,apertureSize = 3)
+        # cv2.imshow("edges",cv2.resize(edges,(500,700)))
+        # cv2.waitKey(0)
+
+        dilation=cv2.dilate(edges,np.ones((3,3),np.uint8),iterations=2)
+        # cv2.imshow("dilation",cv2.resize(dilation,(500,700)))
+        # cv2.waitKey(0)
+
+        lines = cv2.HoughLinesP(dilation,1,np.pi/180,70,maxLineGap=2,minLineLength=image.shape[1]//3)
+        if lines is None or len(lines)<3:
+            line_ys = self.use_hints(lines)
+        else:
+
+
+
+            print(lines)
+            for line in lines:
+                im=cv2.line(edges,(line[0][0],line[0][1]),(line[0][2],line[0][3]),(255,255,255),3)
+
+            # cv2.imshow("lines",cv2.resize(im,(500,700)))
+            # cv2.waitKey(0)
+
+
+
+            lines_y_axis = np.array([[line[0][1]] for line in lines])
+            kmeans = KMeans(n_clusters=3,n_init=3).fit(lines_y_axis)
+
+            line_ys =[ int(centroid[0]) for centroid in sorted(kmeans.cluster_centers_,key = lambda x:x[0])]
+            if abs(line_ys[0]-line_ys[1])<200 or abs(line_ys[1]-line_ys[2])<200:
+                line_ys = self.use_hints(lines)
+
+
+             # minx = min([line[0][0] for line in lines])
+             # maxx = max([line[0][2] for line in lines])
+             # maxx = maxx + 50 if (maxx+50<image.shape[1]) else maxx
+             # minx = minx - 50 if (minx-50>0) else minx
+        # minx = int(0.1 * image.shape[1])
+        # maxx = image.shape[1] - minx
+        minx = 5
+        maxx = image.shape[1]
+        print(line_ys)
+
+        cropped_image =self.crop_image(image,line_ys[1],line_ys[2],minx,maxx)
+        # cv2.imshow("cim",cv2.resize(cropped_image,(700,500)))
+        # cv2.waitKey(0)
+        return cropped_image
+
+
+
+
+
+  def use_hints(self,lines):
+      hints = [360,660,2800]
+      return hints
+
+
+
+
+
 
   def otsu_threshold(selfself,img):
       _,image= cv2.threshold(img,0,255,cv2.THRESH_OTSU)
       return image
+
+
+
+
 
 if __name__=='__main__':
     pm = preprocessing_module()
@@ -211,24 +298,85 @@ if __name__=='__main__':
     #image = cv2.imread("../version1/data/original/a01-003.png",0)
     #image = cv2.imread("../version1/data/original/a01-000u.png",0)
     #image = cv2.imread("../version1/data/original/a01-003x.png",0)
-    image = cv2.imread("../version1/data/original/a03-054.png",0)
+    image = cv2.imread("../version1/data/original/a03-054.png")
     # img = pm.line_segmentation(image)
     # cv2.imshow('ll',img[2])
     # cv2.waitKey(0)
-    img = pm.otsu_threshold(image)
-    img = pm.get_region(img)
+    # img = pm.otsu_threshold(image)
+    # img = pm.get_region(img)
 
    # hist=pm.get_histogram(img)
 
-    lines = pm.get_lines3(img)
-    for line in lines:
-        cv2.imshow("l",line)
-        cv2.waitKey(0)
+    # lines = pm.get_lines3(img)
+    # for line in lines:
+    #     cv2.imshow("l",line)
+    #     cv2.waitKey(0)
    # lines=pm.get_lines2(img,hist)
 
     # for i in range(1,len(lines)+1):
     #     cv2.imshow("ll",lines[i-1])
     #     cv2.waitKey(0)
+
+    # cv2.imshow("img",cv2.resize(image,(500,700)))
+    # cv2.waitKey(0)
+    #
+    #
+    #
+    # edges = cv2.Sobel(image,-1,0,1,ksize=3)
+    # cv2.imshow("edges",cv2.resize(edges,(500,700)))
+    # cv2.waitKey(0)
+
+    # dilation=cv2.dilate(edges,np.ones((5,5),np.uint8))
+    # cv2.imshow("dilation",cv2.resize(dilation,(500,700)))
+    # cv2.waitKey(0)
+
+    # lines = cv2.HoughLinesP(edges,1,np.pi/180,90,maxLineGap=2,minLineLength=image.shape[1]//3)
+    # print(lines)
+    # for line in lines:
+    #     im=cv2.line(edges,(line[0][0],line[0][1]),(line[0][2],line[0][3]),(255,255,255),3)
+    #
+    # cv2.imshow("lines",cv2.resize(im,(500,700)))
+    # cv2.waitKey(0)
+    #
+    # if len(lines)>=3:
+    #     lines_y_axis = np.array([[line[0][1]] for line in lines])
+    #     kmeans = KMeans(n_clusters=3,n_init=3).fit(lines_y_axis)
+    #     minx = min([line[0][0] for line in lines])
+    #     maxx = max([line[0][2] for line in lines])
+    #     maxx = maxx + 50 if (maxx+50<image.shape[1]) else maxx
+    #     minx = minx - 50 if (minx-50>0) else minx
+    #
+    #     line_ys =[ int(centroid[0]) for centroid in sorted(kmeans.cluster_centers_,key = lambda x:x[0])]
+    #
+    # else:
+    #     line_ys = pm.use_hints(lines)
+    # print(line_ys)
+    #
+    # cropped_image = pm.crop_image(image,line_ys[1],line_ys[2],minx,maxx)
+    #
+    # cv2.imshow("cropped",cv2.resize(cropped_image,(700,500)))
+    # cv2.waitKey(0)
+
+
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    _,edged = cv2.threshold(gray,127,255,cv2.THRESH_BINARY_INV)
+    dilation = cv2.dilate(edged,np.ones((7,7),np.uint8),iterations=10)
+    cv2.imshow("dilation",dilation)
+    _,cnts, _ = cv2.findContours(dilation.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    idx = 0
+    for c in cnts:
+        x,y,w,h = cv2.boundingRect(c)
+        if w>100:
+            idx+=1
+            new_img=image[y:y+h,x:x+w]
+            # cv2.imwrite(str(idx) + '.png', new_img)
+
+            cv2.imshow("st",cv2.resize(new_img,(700,500)))
+            cv2.waitKey(0)
+
+
+
+
 
 
 

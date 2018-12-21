@@ -12,6 +12,19 @@ import statistics as stat
 from contour_features import contour_feautres
 
 class feature_extractor(object):
+
+
+
+    def __init__(self):
+
+        img=cv2.imread("./ideal.png",0)
+        self.ideal_hist=self.get_histogram(img)
+
+
+
+
+
+
     # n is the length of fragment
     def edge_direction_distribution(self,n,xc,yc,edge_image):
         window_size = (2*n-3)*2 + 2
@@ -237,23 +250,25 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            f0,f1,f2 = self.fractal_features(line)
+            #f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
             #f4 = self.edge_based_feature(line)
             # f6 = self.enclosed_regions_features(line)
-       #     f6 = self.connected_comp_feautres2(line)
+            #f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
             # cf = contour_feautres()
             # f8 = cf.contour_feautre_extract(line)
             # f9 = self.lower_upper_contour(line)
 
 
-            #line_feature = np.concatenate(([f0,f1,f2],f8,f9))
-            features.append([f0,f1,f2])
+            line_feature = self.histogram_features(line)
+            features.append(line_feature)
+            #features.append(f6)
 
         mean_feature_vector = np.mean(features,axis=0)
+        print("mean{}".format(mean_feature_vector))
         # std_dev = np.std(features,axis=0)
         # feature_vec =np.concatenate((mean_feature_vector,std_dev))
 
@@ -468,7 +483,7 @@ class feature_extractor(object):
         blobSize.append(avgblobsize/len(components_loops))
 
 
-        return [avg_dist[0],avg_w[0],std_w[0],median_w[0],formFactor[0],roundness[0],blobSize[0]]
+        return [avg_dist[0],avg_w[0],std_w[0],median_w[0]]#,formFactor[0],roundness[0],blobSize[0]]
 
 
     def extract_lines_features(self,img,pm):
@@ -483,20 +498,23 @@ class feature_extractor(object):
         lines = pm.get_lines(img)
         for line in lines:
             # print("Extracting fractal features")
-            f0,f1,f2 = self.fractal_features(line)
+            #f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
             #f4 = self.edge_based_feature(line)
-            # f6 = self.enclosed_regions_features(line)
+            #f6 = self.enclosed_regions_features(line)
             #f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
             #
-            #cf = contour_feautres()
-            #f8 = cf.contour_feautre_extract(line)
-            #f9 = self.lower_upper_contour(line)
-            #line_feature = np.concatenate(([f0,f1,f2],f8,f9))
-            features.append([f0,f1,f2]) #line features
+            # cf = contour_feautres()
+            # f8 = cf.contour_feautre_extract(line)
+            # f9 = self.lower_upper_contour(line)
+            # line_feature = np.concatenate((f8,f9))
+            line_feature = self.histogram_features(line)
+            #line_feature = f6
+            features.append(line_feature) #line features
+        print(features)
 
         return features
     
@@ -653,15 +671,148 @@ class feature_extractor(object):
 
 
 
+    def max_index(self,hist):
+            max=0
+            index=0
+            for i in range(len(hist)):
+                if hist[i]>max:
+                    max=hist[i]
+                    index=i
+            return index
+
+
+    def max_value(self,hist):
+        max=0
+        for i in range(len(hist)):
+            if hist[i]>max:
+                max=hist[i]
+        return max
+
+
+    def scaling_line(self,ideal_hist,hist):
+        ratio=self.max_value(ideal_hist)/self.max_value(hist)
+        for i in range(len(hist)):
+            hist[i]=hist[i]*ratio
+        return hist
+
+
+    def lower_index(self,hist,value):
+        index=0
+        for i in range(len(hist)):
+            if abs(hist[i]-value)<20:
+                index=i
+                break
+        return index
+
+
+    #shift right the histo by n
+    def shift_right(self,hist,n):
+        e = np.empty_like(hist)
+        if n >= 0:
+            e[:n] = 0
+            e[n:] = hist[:-n]
+        else:
+            e[n:] = 0
+            e[:n] = hist[-n:]
+        return e
+
+
+        #shift left the hist by n
+    def shift_left(self,hist,n):
+        e = np.empty_like(hist)
+        x=len(hist)
+        if n >= 0:
+            e[:x-n] = hist[-(x-n):]
+            e[x-n:] = 0
+        else:
+            e[n:] = 0
+            e[:n] = hist[-n:]
+        return e
+
+
+        #control the shift direction based on the diff value
+    def shift(self,hist,value,ind):
+        index=self.lower_index(hist,value)
+        diff=index-ind
+        if diff>0:
+            hist=self.shift_left(hist,diff)
+        elif diff<0:
+            hist=self.shift_right(hist,-diff)
+        return hist
+
+
+    def top_bottom(self,hist):
+        top=-1
+        bottom=-1
+        for i in range(len(hist)):
+            #getting the bottom
+            if top!=-1 and hist[i]!=0:
+                bottom=i
+            #getting the top
+            if top==-1 and hist[i]!=0:
+                top=i
+        return top,bottom
 
 
 
+        #this function calculate the ub & lb by doing exhuasitive search by all possible values
+    def upper_lower_baseline(self,ub,lb,top,bottom,hist,ideal_hist):
+        prev_err=100000
+        ub_hist=-1
+        lb_hist=-1
+        for u in range(top,len(hist)):
+            for l in range(u+1,bottom):
+                err=np.power(((ideal_hist[ub]-hist[u])+(ideal_hist[lb]-hist[l])),2)
+                if err<prev_err:
+                    prev_err=err
+                    ub_hist=u
+                    lb_hist=l
+        return ub_hist,lb_hist
 
 
+    #this function do simple calculation after getting the important data
+    def baseline_feature(self,top,bottom,ub,lb):
+        f1=abs(top-ub)
+        f2=abs(ub-lb)
+        f3=abs(lb-bottom)
+        f4=f1/f2
+        f5=f1/f3
+        f6=f2/f3
+        return [f1,f2,f3,f4,f5,f6]
 
 
+    def relative_feature(self,median,f2):
+        f7=median
+        f8=f2/f7
+        return [f7,f8]
 
 
+    def get_histogram(self,img):
+        histogram=[]
+        #loop through the image to calcultae the  horizontal histogram of the image
+        for i in range(img.shape[0]): #for each row
+            sum=0
+            for j in range(img.shape[1]): # for each col
+                if img[i][j]==0:
+                    sum+=1
+            histogram.append(sum)
+        return histogram
+
+    def histogram_features(self,line):
+
+        f = [0,0,0,0,0,0]
+
+        line_hist=self.get_histogram(line)
+        # temp=self.max_index(line_hist)
+
+        line_hist=self.scaling_line(self.ideal_hist,line_hist)
+        line_hist=self.shift(line_hist,352,130)
+        top,bottom=self.top_bottom(line_hist)
+        ub,lb=self.upper_lower_baseline(160,132,top,bottom,line_hist,self.ideal_hist)
+        if ub!=-1 and lb!=-1:
+            f=self.baseline_feature(top,bottom,ub,lb)
+
+        return f
 
 if __name__=="__main__":
     ft = feature_extractor()
