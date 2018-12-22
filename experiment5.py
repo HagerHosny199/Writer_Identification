@@ -45,6 +45,7 @@ for dir in dirs:
 
     test,training_data,training_labels = loader.read_test_case_directory(dir,threshold=False)
     cropped_training_data = [pm.otsu_threshold(pm.get_cropped_image(training_data[i])) for i in range(len(training_data))]
+    test = pm.otsu_threshold(pm.get_cropped_image(test))
     feature_vectors = []
     for example in cropped_training_data:
         feature_vector = ft.extract_features_from_lines(example,pm)

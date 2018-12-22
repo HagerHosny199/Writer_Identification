@@ -32,6 +32,7 @@ for i in range(test_cnt):
     print(test_label)
     print(training_labels)
     cropped_training_data = [pm.otsu_threshold(pm.get_region(training_data[i]) for i in range(len(training_data)))]
+    test = pm.get_cropped_image(test)
     feature_vectors = []
     labels = []
     j=0

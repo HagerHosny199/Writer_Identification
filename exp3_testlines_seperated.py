@@ -29,6 +29,7 @@ for i in range(test_cnt):
     print("testcase {}: ".format(i))
     dir_name = 'dir{}'.format(i)
     test,test_label,training_data,training_labels = loader.read_test_case(dir_name)
+    test = pm.get_cropped_image(test)
     print(test_label)
     print(training_labels)
     cropped_training_data = [pm.get_region(training_data[i]) for i in range(len(training_data))]

@@ -39,7 +39,11 @@ class classifier(object):
         if dist<min_dist:
             min_dist = dist
             min_i = i
+    print("training")
+    print(len(training_labels))
+    print("feature vector")
 
+    print(len(feature_vectors))
     test_class = training_labels[min_i]
 
     return test_class

@@ -200,7 +200,7 @@ class preprocessing_module(object):
       for i in range(1,len(ycrop)):
           line = img[ycrop[i-1]:ycrop[i],0:]
 
-          if np.sum(sum(line==0))>100:
+          if np.sum(sum(line==0))>200:
             lines.append(line)
       return lines
 
@@ -228,20 +228,20 @@ class preprocessing_module(object):
         # cv2.imshow("edges",cv2.resize(edges,(500,700)))
         # cv2.waitKey(0)
 
-        dilation=cv2.dilate(edges,np.ones((3,3),np.uint8),iterations=2)
+        #dilation=cv2.dilate(edges,np.ones((3,3),np.uint8),iterations=2)
         # cv2.imshow("dilation",cv2.resize(dilation,(500,700)))
         # cv2.waitKey(0)
 
-        lines = cv2.HoughLinesP(dilation,1,np.pi/180,70,maxLineGap=2,minLineLength=image.shape[1]//3)
+        lines = cv2.HoughLinesP(edges,1,np.pi/180,70,maxLineGap=2,minLineLength=image.shape[1]//3)
         if lines is None or len(lines)<3:
             line_ys = self.use_hints(lines)
         else:
 
 
 
-            print(lines)
-            for line in lines:
-                im=cv2.line(edges,(line[0][0],line[0][1]),(line[0][2],line[0][3]),(255,255,255),3)
+            # print(lines)
+            # for line in lines:
+            #     im=cv2.line(edges,(line[0][0],line[0][1]),(line[0][2],line[0][3]),(255,255,255),3)
 
             # cv2.imshow("lines",cv2.resize(im,(500,700)))
             # cv2.waitKey(0)
@@ -262,8 +262,8 @@ class preprocessing_module(object):
              # minx = minx - 50 if (minx-50>0) else minx
         # minx = int(0.1 * image.shape[1])
         # maxx = image.shape[1] - minx
-        minx = 5
-        maxx = image.shape[1]
+        minx = 20
+        maxx = image.shape[1]-10
         print(line_ys)
 
         cropped_image =self.crop_image(image,line_ys[1],line_ys[2],minx,maxx)

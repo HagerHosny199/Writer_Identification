@@ -33,6 +33,7 @@ for i in range(test_cnt):
     print(test_label)
     print(training_labels)
     cropped_training_data = [pm.get_region(training_data[i]) for i in range(len(training_data))]
+    test = pm.get_cropped_image(test)
     feature_vectors = []
     for example in cropped_training_data:
         feature_vector = ft.extract_features_from_document(example)

@@ -10,7 +10,8 @@ import math
 from scipy import stats
 import statistics as stat
 from contour_features import contour_feautres
-
+from matplotlib import pyplot as plt
+from matplotlib import lines as mlines
 class feature_extractor(object):
 
 
@@ -213,7 +214,27 @@ class feature_extractor(object):
 
 
 
-    def fractal_features(self,line):
+
+
+
+    def newline(p1, p2):
+        ax = plt.gca()
+        xmin, xmax = ax.get_xbound()
+
+        if(p2[0] == p1[0]):
+            xmin = xmax = p1[0]
+            ymin, ymax = ax.get_ybound()
+        else:
+            ymax = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmax-p1[0])
+            ymin = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmin-p1[0])
+
+        l = mlines.Line2D([xmin,xmax], [ymin,ymax])
+        ax.add_line(l)
+        return l
+
+
+
+    def fractal_features2(self,line):
 
 
         h= np.size(line,0)
@@ -238,6 +259,52 @@ class feature_extractor(object):
         return (f0,f1,f2)
 
 
+
+    def fractal_features(self,line):
+
+
+        h= np.size(line,0)
+        w = np.size(line,1)
+        area = h*w
+        #canny edge detection
+        #  compute the median of the single channel pixel intensities
+        v = np.median(line)
+        sigma = 0.3
+
+	    # apply automatic Canny edge detection using the computed median
+        lower = int(max(0, (1.0 - sigma) * v))
+        upper = int(min(255, (1.0 + sigma) * v))
+        edged = cv2.Canny(line, lower, upper)
+
+        # cv2.imshow("edged",edged)
+        # cv2.waitKey(0)
+
+
+
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2,2))
+
+        y=[]
+        x=[]
+        for i in range(1,50): #try with fifty differenr radii of the disk
+            edged = cv2.dilate(edged,kernel,iterations=1)
+            a = cv2.countNonZero(edged)
+
+
+            g = math.log(a/i)
+            y.append(g)
+            x.append(math.log(i))
+
+        # plt.plot(x,y)
+        # plt.xlabel("log r")
+        # plt.ylabel("log (A(r)/r)")
+        # plt.show()
+
+        f0,f1,f2 = self.minimum_error_line_segments(x,y)
+        return (f0,f1,f2)
+
+
+
     def extract_features_from_lines(self,img,pm):
         '''
         Calculates the mean feature vectors for an image
@@ -247,10 +314,12 @@ class feature_extractor(object):
         '''
         print("extracting features from lines")
         features = []
-        lines = pm.get_lines(img)
+        lines = pm.get_lines3(img)
         for line in lines:
+            # cv2.imshow("line",cv2.resize(line,(700,100)))
+            # cv2.waitKey(0)
             # print("Extracting fractal features")
-            #f0,f1,f2 = self.fractal_features(line)
+            f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
@@ -263,7 +332,8 @@ class feature_extractor(object):
             # f9 = self.lower_upper_contour(line)
 
 
-            line_feature = self.histogram_features(line)
+            #line_feature = self.histogram_features(line)
+            line_feature = [f0,f1,f2]
             features.append(line_feature)
             #features.append(f6)
 
@@ -495,10 +565,12 @@ class feature_extractor(object):
         '''
         print("extracting features from lines")
         features = []
-        lines = pm.get_lines(img)
+        lines = pm.get_lines3(img)
         for line in lines:
+            # cv2.imshow("line",cv2.resize(line,(700,100)))
+            # cv2.waitKey(0)
             # print("Extracting fractal features")
-            #f0,f1,f2 = self.fractal_features(line)
+            f0,f1,f2 = self.fractal_features(line)
             #print("Applying gabor filter")
             #f3 = self.Gabor_filter_features(line)
 
@@ -511,10 +583,14 @@ class feature_extractor(object):
             # f8 = cf.contour_feautre_extract(line)
             # f9 = self.lower_upper_contour(line)
             # line_feature = np.concatenate((f8,f9))
-            line_feature = self.histogram_features(line)
+            #line_feature = self.histogram_features(line)
             #line_feature = f6
+            line_feature = [f0,f1,f2]
+
+            print(line_feature)
             features.append(line_feature) #line features
-        print(features)
+
+        print()
 
         return features
     

@@ -49,10 +49,16 @@ for dir in dirs:
 
     test,training_data,training_labels = loader.read_test_case_directory(dir,threshold=False)
     cropped_training_data = [pm.otsu_threshold(pm.get_cropped_image(training_data[i])) for i in range(len(training_data))]
+    test = pm.otsu_threshold(pm.get_cropped_image(test))
+    # cv2.imshow("test",cv2.resize(test,(700,500)))
+    # cv2.waitKey(0)
     feature_vectors = []
     labels = []
+
     j=0
     for example in cropped_training_data:
+        # cv2.imshow("examp",cv2.resize(example,(700,500)))
+        # cv2.waitKey(0)
         feature_vector = ft.extract_lines_features(example,pm)
         print("lenfeaturevector".format(len(feature_vector)))
         feature_vectors.extend(feature_vector)
