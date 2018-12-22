@@ -286,7 +286,7 @@ class feature_extractor(object):
 
         y=[]
         x=[]
-        for i in range(1,50): #try with fifty differenr radii of the disk
+        for i in range(1,20): #try with fifty differenr radii of the disk
             edged = cv2.dilate(edged,kernel,iterations=1)
             a = cv2.countNonZero(edged)
 
@@ -327,13 +327,13 @@ class feature_extractor(object):
             # f6 = self.enclosed_regions_features(line)
             #f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
-            # cf = contour_feautres()
-            # f8 = cf.contour_feautre_extract(line)
-            # f9 = self.lower_upper_contour(line)
+            cf = contour_feautres()
+            f8 = cf.contour_feautre_extract(line)
+            #f9 = self.lower_upper_contour(line)
 
 
             #line_feature = self.histogram_features(line)
-            line_feature = [f0,f1,f2]
+            line_feature = np.concatenate(([f0,f1,f2],f8))
             features.append(line_feature)
             #features.append(f6)
 
@@ -579,13 +579,13 @@ class feature_extractor(object):
             #f6 = self.connected_comp_feautres2(line)
             #f7 = self.white_space2(line)
             #
-            # cf = contour_feautres()
-            # f8 = cf.contour_feautre_extract(line)
-            # f9 = self.lower_upper_contour(line)
+            cf = contour_feautres()
+            f8 = cf.contour_feautre_extract(line)
+            #f9 = self.lower_upper_contour(line)
             # line_feature = np.concatenate((f8,f9))
             #line_feature = self.histogram_features(line)
             #line_feature = f6
-            line_feature = [f0,f1,f2]
+            line_feature = np.concatenate(([f0,f1,f2],f8))
 
             print(line_feature)
             features.append(line_feature) #line features

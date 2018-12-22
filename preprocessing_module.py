@@ -222,7 +222,19 @@ class preprocessing_module(object):
 
 
   def get_cropped_image(self,image):
-        edges = cv2.Sobel(image,-1,0,1,ksize=3)
+
+              #canny edge detection
+        #  compute the median of the single channel pixel intensities
+        v = np.median(image)
+        sigma = 0.1
+
+	    # apply automatic Canny edge detection using the computed median
+        lower = int(max(0, (1.0 - sigma) * v))
+        upper = int(min(255, (1.0 + sigma) * v))
+        edges = cv2.Canny(image, lower, upper)
+        # cv2.imshow("e",cv2.resize(edges,(700,500)))
+        # cv2.waitKey(0)
+        #edges = cv2.Sobel(image,-1,0,1,ksize=3)
         #_,edges = cv2.threshold(image,0,255 ,cv2.THRESH_OTSU)
         #edges = cv2.Canny(image,5,50,apertureSize = 3)
         # cv2.imshow("edges",cv2.resize(edges,(500,700)))
@@ -233,6 +245,12 @@ class preprocessing_module(object):
         # cv2.waitKey(0)
 
         lines = cv2.HoughLinesP(edges,1,np.pi/180,70,maxLineGap=2,minLineLength=image.shape[1]//3)
+        #
+        # for line in lines:
+        #     im=cv2.line(edges,(line[0][0],line[0][1]),(line[0][2],line[0][3]),(255,255,255),10)
+        #
+        # cv2.imshow("lines",cv2.resize(im,(500,700)))
+        # cv2.waitKey(0)
         if lines is None or len(lines)<3:
             line_ys = self.use_hints(lines)
         else:

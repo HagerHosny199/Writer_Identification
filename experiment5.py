@@ -16,7 +16,7 @@ pm = preprocessing_module.preprocessing_module()
 ft = feature_extraction.feature_extractor()
 cl = classifier.classifier()
 
-path = "./TestCases/data"
+path = "./data"
 
 dirs = loader.read_dirs(path)
 results = open("results.txt",'w')
